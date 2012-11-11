@@ -669,7 +669,7 @@ static int stream_sock_write_loop(struct stream_interface *si, struct buffer *b)
 			if (--write_poll <= 0)
 				break;
 		}
-		else if (ret == 0 || errno == EAGAIN) {
+		else if (ret == 0 || errno == EAGAIN || errno == ENOTCONN) {
 			/* nothing written, we need to poll for write first */
 			retval = 0;
 			break;
