@@ -2097,17 +2097,10 @@ int stats_dump_proxy(struct session *s, struct proxy *px, struct uri_auth *uri)
 					     "<td colspan=3></td>");
 
 				/* throttle */
-				if ((sv->state & SRV_WARMINGUP) &&
-				    now.tv_sec < sv->last_change + sv->slowstart &&
-				    now.tv_sec >= sv->last_change) {
-					unsigned int ratio;
-					ratio = MAX(1, 100 * (now.tv_sec - sv->last_change) / sv->slowstart);
-					chunk_printf(&msg,
-						     "<td class=ac>%d %%</td></tr>\n", ratio);
-				} else {
-					chunk_printf(&msg,
-						     "<td class=ac>-</td></tr>\n");
-				}
+				if (sv->state & SRV_WARMINGUP)
+					chunk_printf(&msg, "<td class=ac>%d %%</td></tr>\n", server_throttle_rate(sv));
+				else
+					chunk_printf(&msg, "<td class=ac>-</td></tr>\n");
 			} else {
 				static char *srv_hlt_st[7] = { "DOWN,", "DOWN %d/%d,",
 							       "UP %d/%d,", "UP,",
@@ -2177,13 +2170,8 @@ int stats_dump_proxy(struct session *s, struct proxy *px, struct uri_auth *uri)
 				     relative_pid, px->uuid, sv->puid);
 
 				/* throttle */
-				if ((sv->state & SRV_WARMINGUP) &&
-				    now.tv_sec < sv->last_change + sv->slowstart &&
-				    now.tv_sec >= sv->last_change) {
-					unsigned int ratio;
-					ratio = MAX(1, 100 * (now.tv_sec - sv->last_change) / sv->slowstart);
-					chunk_printf(&msg, "%d", ratio);
-				}
+				if (sv->state & SRV_WARMINGUP)
+					chunk_printf(&msg, "%d", server_throttle_rate(sv));
 
 				/* sessions: lbtot */
 				chunk_printf(&msg, ",%lld,", sv->counters.cum_lbconn);
