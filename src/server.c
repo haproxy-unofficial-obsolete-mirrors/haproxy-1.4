@@ -35,6 +35,42 @@ int srv_getinter(struct server *s) {
 	return (s->fastinter)?(s->fastinter):(s->inter);
 }
 
+/* Recomputes the server's eweight based on its state, uweight, the current time,
+ * and the proxy's algorihtm. To be used after updating sv->uweight. The warmup
+ * state is automatically disabled if the time is elapsed.
+ */
+void server_recalc_eweight(struct server *sv)
+{
+	struct proxy *px = sv->proxy;
+	unsigned w;
+
+	if (now.tv_sec < sv->last_change || now.tv_sec >= sv->last_change + sv->slowstart) {
+		/* go to full throttle if the slowstart interval is reached */
+		sv->state &= ~SRV_WARMINGUP;
+	}
+
+	/* We must take care of not pushing the server to full throttle during slow starts.
+	 * It must also start immediately, at least at the minimal step when leaving maintenance.
+	 */
+	if ((sv->state & SRV_WARMINGUP) && (px->lbprm.algo & BE_LB_PROP_DYN))
+		w = (px->lbprm.wdiv * (now.tv_sec - sv->last_change) + sv->slowstart) / sv->slowstart;
+	else
+		w = px->lbprm.wdiv;
+
+	sv->eweight = (sv->uweight * w + px->lbprm.wmult - 1) / px->lbprm.wmult;
+
+	/* now propagate the status change to any LB algorithms */
+	if (px->lbprm.update_server_eweight)
+		px->lbprm.update_server_eweight(sv);
+	else if (sv->eweight) {
+		if (px->lbprm.set_server_status_up)
+			px->lbprm.set_server_status_up(sv);
+	}
+	else {
+		if (px->lbprm.set_server_status_down)
+			px->lbprm.set_server_status_down(sv);
+	}
+}
 
 /*
  * Local variables:

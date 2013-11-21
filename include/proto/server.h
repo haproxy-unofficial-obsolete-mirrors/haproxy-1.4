@@ -46,6 +46,12 @@ static void inline srv_inc_sess_ctr(struct server *s)
 
 #endif /* _PROTO_SERVER_H */
 
+/* Recomputes the server's eweight based on its state, uweight, the current time,
+ * and the proxy's algorihtm. To be used after updating sv->uweight. The warmup
+ * state is automatically disabled if the time is elapsed.
+ */
+void server_recalc_eweight(struct server *sv);
+
 /*
  * Local variables:
  *  c-indent-level: 8
