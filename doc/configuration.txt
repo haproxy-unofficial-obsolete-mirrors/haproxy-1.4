@@ -659,7 +659,7 @@ nopoll
 nosepoll
   Disables the use of the "speculative epoll" event polling system on Linux. It
   is equivalent to the command-line argument "-ds". The next polling system
-  used will generally be "epoll". See also "nosepoll", and "nopoll".
+  used will generally be "epoll". See also "noepoll", and "nopoll".
 
 nosplice
   Disables the use of kernel tcp splicing between sockets on Linux. It is
