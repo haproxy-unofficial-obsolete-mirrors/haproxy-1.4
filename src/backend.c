@@ -663,7 +663,7 @@ int assign_server_address(struct session *s)
 			 * the client asked, which is handy for remapping ports
 			 * locally on multiple addresses at once.
 			 */
-			if (!(s->be->options & PR_O_TRANSP) && !(s->flags & SN_FRT_ADDR_SET))
+			if (!(s->flags & SN_FRT_ADDR_SET))
 				get_frt_addr(s);
 
 			s->srv_addr.sin_addr = ((struct sockaddr_in *)&s->frt_addr)->sin_addr;
@@ -672,7 +672,7 @@ int assign_server_address(struct session *s)
 		/* if this server remaps proxied ports, we'll use
 		 * the port the client connected to with an offset. */
 		if (s->srv->state & SRV_MAPPORTS) {
-			if (!(s->be->options & PR_O_TRANSP) && !(s->flags & SN_FRT_ADDR_SET))
+			if (!(s->flags & SN_FRT_ADDR_SET))
 				get_frt_addr(s);
 			if (s->frt_addr.ss_family == AF_INET) {
 				s->srv_addr.sin_port = htons(ntohs(s->srv_addr.sin_port) +
