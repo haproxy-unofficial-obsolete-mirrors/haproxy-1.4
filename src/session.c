@@ -760,18 +760,6 @@ int process_store_rules(struct session *s, struct buffer *rep, int an_bit)
 
 	list_for_each_entry(rule, &px->storersp_rules, list) {
 		int ret = 1 ;
-		int storereqidx = -1;
-
-		for (i = 0; i < s->store_count; i++) {
-			if (rule->table.t == s->store[i].table) {
-				if (!(s->store[i].flags))
-					storereqidx = i;
-				break;
-			}
-		}
-
-		if ((i !=  s->store_count) && (storereqidx == -1))
-			continue;
 
 		if (rule->cond) {
 	                ret = acl_exec_cond(rule->cond, px, s, &s->txn, ACL_DIR_RTR);
@@ -787,17 +775,12 @@ int process_store_rules(struct session *s, struct buffer *rep, int an_bit)
 			if (!key)
 				continue;
 
-			if (storereqidx != -1) {
-				stksess_key(s->store[storereqidx].table, s->store[storereqidx].ts, key);
-				s->store[storereqidx].flags = 1;
-			}
-			else if (s->store_count < (sizeof(s->store) / sizeof(s->store[0]))) {
+			if (s->store_count < (sizeof(s->store) / sizeof(s->store[0]))) {
 				struct stksess *ts;
 
 				ts = stksess_new(rule->table.t, key);
 				if (ts) {
 					s->store[s->store_count].table = rule->table.t;
-					s->store[s->store_count].flags = 1;
 					s->store[s->store_count++].ts = ts;
 				}
 			}
