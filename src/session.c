@@ -674,6 +674,13 @@ int process_sticking_rules(struct session *s, struct buffer *req, int an_bit)
 		int ret = 1 ;
 		int i;
 
+		/* Only the first stick store-request of each table is applied
+		 * and other ones are ignored. The purpose is to allow complex
+		 * configurations which look for multiple entries by decreasing
+		 * order of precision and to stop at the first which matches.
+		 * An example could be a store of the IP address from an HTTP
+		 * header first, then from the source if not found.
+		 */
 		for (i = 0; i < s->store_count; i++) {
 			if (rule->table.t == s->store[i].table)
 				break;
@@ -748,6 +755,7 @@ int process_store_rules(struct session *s, struct buffer *rep, int an_bit)
 	struct proxy    *px   = s->be;
 	struct sticking_rule  *rule;
 	int i;
+	int nbreq = s->store_count;
 
 	DPRINTF(stderr,"[%u] %s: session=%p b=%p, exp(r,w)=%u,%u bf=%08x bl=%d analysers=%02x\n",
 		now_ms, __FUNCTION__,
@@ -760,6 +768,27 @@ int process_store_rules(struct session *s, struct buffer *rep, int an_bit)
 
 	list_for_each_entry(rule, &px->storersp_rules, list) {
 		int ret = 1 ;
+
+		/* Only the first stick store-response of each table is applied
+		 * and other ones are ignored. The purpose is to allow complex
+		 * configurations which look for multiple entries by decreasing
+		 * order of precision and to stop at the first which matches.
+		 * An example could be a store of a set-cookie value, with a
+		 * fallback to a parameter found in a 302 redirect.
+		 *
+		 * The store-response rules are not allowed to override the
+		 * store-request rules for the same table, but they may coexist.
+		 * Thus we can have up to one store-request entry and one store-
+		 * response entry for the same table at any time.
+		 */
+		for (i = nbreq; i < s->store_count; i++) {
+			if (rule->table.t == s->store[i].table)
+				break;
+		}
+
+		/* skip existing entries for this table */
+		if (i < s->store_count)
+			continue;
 
 		if (rule->cond) {
 	                ret = acl_exec_cond(rule->cond, px, s, &s->txn, ACL_DIR_RTR);
