@@ -3009,9 +3009,18 @@ int http_process_req_stat_post(struct session *s, struct buffer *req)
 						break;
 					case ST_ADM_ACTION_ENABLE:
 						if ((px->state != PR_STSTOPPED) && (sv->state & SRV_MAINTAIN)) {
-							/* Already in maintenance, we can change the server state */
-							set_server_up(sv);
-							sv->health = sv->rise;	/* up, but will fall down at first failure */
+							/* Already in maintenance, we can change the server state.
+							 * If this server tracks the status of another one,
+							 * we must restore the good status.
+							 */
+							if (!sv->tracked || (sv->tracked->state & SRV_RUNNING)) {
+								set_server_up(sv);
+								sv->health = sv->rise;	/* up, but will fall down at first failure */
+							}
+							else {
+								sv->state &= ~SRV_MAINTAIN;
+								set_server_down(sv);
+							}
 							altered_servers++;
 							total_servers++;
 						}
