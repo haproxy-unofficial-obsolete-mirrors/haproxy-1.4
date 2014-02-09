@@ -44,6 +44,7 @@ static inline void buffer_init(struct buffer *buf)
 {
 	buf->send_max = 0;
 	buf->to_forward = 0;
+	buf->xfer_small = buf->xfer_large = 0;
 	buf->l = buf->total = 0;
 	buf->pipe = NULL;
 	buf->analysers = 0;
