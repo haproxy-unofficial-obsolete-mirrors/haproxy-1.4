@@ -452,7 +452,7 @@ int stream_sock_read(int fd) {
 			/* connection closed */
 			goto out_shutdown_r;
 		}
-		else if (errno == EAGAIN) {
+		else if (errno == EAGAIN || errno == ENOTCONN) {
 			/* Ignore EAGAIN but inform the poller that there is
 			 * nothing to read left if we did not read much, ie
 			 * less than what we were still expecting to read.
