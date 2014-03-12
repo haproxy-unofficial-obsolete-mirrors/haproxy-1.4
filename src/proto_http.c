@@ -4169,7 +4169,7 @@ void http_end_txn_clean_session(struct session *s)
 	s->req->flags &= ~(BF_SHUTW|BF_SHUTW_NOW|BF_AUTO_CONNECT|BF_WRITE_ERROR|BF_STREAMER|BF_STREAMER_FAST|BF_NEVER_WAIT);
 	s->rep->flags &= ~(BF_SHUTR|BF_SHUTR_NOW|BF_READ_ATTACHED|BF_READ_ERROR|BF_READ_NOEXP|BF_STREAMER|BF_STREAMER_FAST|BF_WRITE_PARTIAL|BF_NEVER_WAIT);
 	s->flags &= ~(SN_DIRECT|SN_ASSIGNED|SN_ADDR_SET|SN_BE_ASSIGNED|SN_FORCE_PRST|SN_IGNORE_PRST);
-	s->flags &= ~(SN_CURR_SESS|SN_REDIRECTABLE);
+	s->flags &= ~(SN_CURR_SESS|SN_REDIRECTABLE|SN_WAIT_CONN);
 	s->txn.meth = 0;
 	http_reset_txn(s);
 	s->txn.flags |= TX_NOT_FIRST | TX_WAIT_NEXT_RQ;
@@ -4575,6 +4575,18 @@ int http_request_forward_body(struct session *s, struct buffer *req, int an_bit)
 	}
 
 	buffer_dont_close(req);
+
+	/* Some post-connect processing might want us to refrain from starting to
+	 * forward data. Currently, the only reason for this is "balance url_param"
+	 * whichs need to parse/process the request after we've enabled forwarding.
+	 */
+	if (unlikely(s->flags & SN_WAIT_CONN)) {
+		if (!(s->rep->flags & BF_READ_ATTACHED)) {
+			buffer_auto_connect(req);
+			goto missing_data;
+		}
+		s->flags &= ~SN_WAIT_CONN;
+	}
 
 	/* Note that we don't have to send 100-continue back because we don't
 	 * need the data to complete our job, and it's up to the server to

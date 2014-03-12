@@ -83,6 +83,8 @@
 
 #define SN_IGNORE_PRST	0x00100000	/* ignore persistence */
 
+#define SN_WAIT_CONN    0x00200000      /* don't connect yet */
+
 /* WARNING: if new fields are added, they must be initialized in event_accept()
  * and freed in session_free() !
  */
