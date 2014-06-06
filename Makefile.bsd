@@ -89,8 +89,8 @@ CPU_OPTS=$(COPTS.$(CPU))
 SPEC_OPTS=-fno-strict-aliasing
 
 VERSION != cat VERSION 2>/dev/null || touch VERSION
-SUBVERS != cat SUBVERS 2>/dev/null || touch SUBVERS
-VERDATE != cat VERDATE 2>/dev/null || touch VERDATE
+SUBVERS != ((grep -v "\$Format" SUBVERS 2>/dev/null || touch SUBVERS) | head -n 1)
+VERDATE != ((grep -v "\$Format" VERDATE 2>/dev/null || touch VERDATE) | head -n 1 | cut -f1 -d' ' | tr '-' '/')
 
 VER_OPTS := -DCONFIG_HAPROXY_VERSION=\"$(VERSION)$(SUBVERS)\" \
             -DCONFIG_HAPROXY_DATE=\"$(VERDATE)\"
